@@ -29,17 +29,38 @@ csv_path_students = os.path.join("..","Resources","raw_data","students_complete.
 
 school_data = pd.read_csv(csv_path_schools)
 student_data = pd.read_csv(csv_path_students)
-#school_data["budget"]=school_data["budget"].map("${:,}".format)
 ```
 
 
 ```python
+#Initial test
 #school_data.head()
+#student_data.head()
+#school_data.count()
+#student_data.count()
 ```
 
 
 ```python
-#student_data.head()
+#user defined functions
+def format_to_nice_number(series_to_change):  
+    series_to_change=series_to_change.map("{:,.0f}".format)
+    return series_to_change;
+
+def format_to_perc(series_to_change):  
+    series_to_change=series_to_change.map("{:,.2f}%".format)
+    return series_to_change;
+
+def format_to_dollars( series_to_change ):  
+    series_to_change=series_to_change.map("${:,.0f}".format)
+    return series_to_change;
+
+def format_to_plain_number(series_to_change):
+    series_to_change=series_to_change.replace({'\%': '','\$': '', ',': ''}, regex=True)
+    series_to_change = series_to_change.apply(pd.to_numeric)
+    return series_to_change;
+
+
 ```
 
 
@@ -87,12 +108,17 @@ district_summary=pd.DataFrame({"Total Schools":[total_schools],"Total Students":
 district_summary=district_summary[["Total Schools","Total Students","Total Budget","Average Math Score","Average Reading Score","% Passing Math","% Passing Reading","Overall Passing Rate"]]
 
 #format before printing out
-district_summary["Total Budget"]=district_summary["Total Budget"].map("${:,}".format)
-district_summary["% Passing Math"]=district_summary["% Passing Math"].map("{:,.2f}%".format)
-district_summary["% Passing Reading"]=district_summary["% Passing Reading"].map("{:,.2f}%".format)
-district_summary["Overall Passing Rate"]=district_summary["Overall Passing Rate"].map("{:,.2f}%".format)
-district_summary["Average Math Score"]=district_summary["Average Math Score"].map("{:,.2f}".format)
-district_summary["Average Reading Score"]=district_summary["Average Reading Score"].map("{:,.2f}".format)
+to_perc=["% Passing Math","% Passing Reading", "Overall Passing Rate"]
+for x in to_perc:
+    district_summary[x]=format_to_perc(district_summary[x])
+
+to_plain=["Average Math Score","Average Reading Score"]
+for x in to_plain:
+    district_summary[x]=format_to_nice_number(district_summary[x])
+    
+to_dollars=["Total Budget"]
+for x in to_dollars:
+    district_summary[x]=format_to_dollars(district_summary[x])
 
 district_summary
 ```
@@ -134,8 +160,8 @@ district_summary
       <td>15</td>
       <td>39170</td>
       <td>$24,649,428</td>
-      <td>78.99</td>
-      <td>81.88</td>
+      <td>79</td>
+      <td>82</td>
       <td>74.98%</td>
       <td>85.81%</td>
       <td>80.39%</td>
@@ -191,16 +217,17 @@ school_summary["% passing reading"]=sorted_reading["school name"].count()/school
 school_summary["overall passing rate"]=(school_summary["% passing math"]+school_summary["% passing reading"])/2
 
 #format
-school_summary["size"]=school_summary["size"].map("{:,.0f}".format)
-school_summary["budget"]=school_summary["budget"].map("${:,.0f}".format)
-school_summary["per student budget"]=school_summary["per student budget"].map("${:,.0f}".format)
+
 school_summary=school_summary.rename(columns={"per student budget":"Budget Per Student","size":"Total Students","budget":"Budget","reading_score":"Average Reading Score",
                                               "math_score":"Average Math Score","type":"School Type","% passing math":"% Passing Math",
                                               "% passing reading":"% Passing Reading","overall passing rate":"Overall Passing Rate"})
-school_summary["% Passing Math"]=school_summary["% Passing Math"].map("{:,.2f}%".format)
-school_summary["% Passing Reading"]=school_summary["% Passing Reading"].map("{:,.2f}%".format)
-school_summary["Overall Passing Rate"]=school_summary["Overall Passing Rate"].map("{:,.2f}%".format)
 school_summary = school_summary.drop("Student ID",1)
+school_summary["Total Students"]=format_to_nice_number(school_summary["Total Students"])
+school_summary["Budget"]=format_to_dollars(school_summary["Budget"])
+school_summary["Budget Per Student"]=format_to_dollars(school_summary["Budget Per Student"])
+school_summary["% Passing Math"]=format_to_perc(school_summary["% Passing Math"])
+school_summary["% Passing Reading"]=format_to_perc(school_summary["% Passing Reading"])
+school_summary["Overall Passing Rate"]=format_to_perc(school_summary["Overall Passing Rate"])
 school_summary
 ```
 
@@ -714,6 +741,8 @@ bottom_schools
 # **Math Scores by Grade**
 
 # * Create a table that lists the average Math Score for students of each grade level (9th, 10th, 11th, 12th) at each school.
+#grade_math_stats=all_stats.groupby(["school name","grade"]).mean()
+all_stats["grade"] = pd.Categorical(all_stats["grade"], ["9th", "10th", "11th", "12th"])
 grade_math_stats=all_stats.groupby(["school name","grade"]).mean()
 grade_math_stats=grade_math_stats[["math_score"]]
 grade_math_stats=grade_math_stats.rename(columns={"math_score":"Average Math Score"})
@@ -753,6 +782,10 @@ grade_math_stats
   <tbody>
     <tr>
       <th rowspan="4" valign="top">Bailey High School</th>
+      <th>9th</th>
+      <td>77.083676</td>
+    </tr>
+    <tr>
       <th>10th</th>
       <td>76.996772</td>
     </tr>
@@ -765,11 +798,11 @@ grade_math_stats
       <td>76.492218</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Cabrera High School</th>
       <th>9th</th>
-      <td>77.083676</td>
+      <td>83.094697</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Cabrera High School</th>
       <th>10th</th>
       <td>83.154506</td>
     </tr>
@@ -782,11 +815,11 @@ grade_math_stats
       <td>83.277487</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Figueroa High School</th>
       <th>9th</th>
-      <td>83.094697</td>
+      <td>76.403037</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Figueroa High School</th>
       <th>10th</th>
       <td>76.539974</td>
     </tr>
@@ -799,11 +832,11 @@ grade_math_stats
       <td>77.151369</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Ford High School</th>
       <th>9th</th>
-      <td>76.403037</td>
+      <td>77.361345</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Ford High School</th>
       <th>10th</th>
       <td>77.672316</td>
     </tr>
@@ -816,11 +849,11 @@ grade_math_stats
       <td>76.179963</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Griffin High School</th>
       <th>9th</th>
-      <td>77.361345</td>
+      <td>82.044010</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Griffin High School</th>
       <th>10th</th>
       <td>84.229064</td>
     </tr>
@@ -833,11 +866,11 @@ grade_math_stats
       <td>83.356164</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Hernandez High School</th>
       <th>9th</th>
-      <td>82.044010</td>
+      <td>77.438495</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Hernandez High School</th>
       <th>10th</th>
       <td>77.337408</td>
     </tr>
@@ -850,11 +883,11 @@ grade_math_stats
       <td>77.186567</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Holden High School</th>
       <th>9th</th>
-      <td>77.438495</td>
+      <td>83.787402</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Holden High School</th>
       <th>10th</th>
       <td>83.429825</td>
     </tr>
@@ -867,11 +900,11 @@ grade_math_stats
       <td>82.855422</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Huang High School</th>
       <th>9th</th>
-      <td>83.787402</td>
+      <td>77.027251</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Huang High School</th>
       <th>10th</th>
       <td>75.908735</td>
     </tr>
@@ -884,11 +917,11 @@ grade_math_stats
       <td>77.225641</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Johnson High School</th>
       <th>9th</th>
-      <td>77.027251</td>
+      <td>77.187857</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Johnson High School</th>
       <th>10th</th>
       <td>76.691117</td>
     </tr>
@@ -901,11 +934,11 @@ grade_math_stats
       <td>76.863248</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Pena High School</th>
       <th>9th</th>
-      <td>77.187857</td>
+      <td>83.625455</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Pena High School</th>
       <th>10th</th>
       <td>83.372000</td>
     </tr>
@@ -918,11 +951,11 @@ grade_math_stats
       <td>84.121547</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Rodriguez High School</th>
       <th>9th</th>
-      <td>83.625455</td>
+      <td>76.859966</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Rodriguez High School</th>
       <th>10th</th>
       <td>76.612500</td>
     </tr>
@@ -935,11 +968,11 @@ grade_math_stats
       <td>77.690748</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Shelton High School</th>
       <th>9th</th>
-      <td>76.859966</td>
+      <td>83.420755</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Shelton High School</th>
       <th>10th</th>
       <td>82.917411</td>
     </tr>
@@ -952,11 +985,11 @@ grade_math_stats
       <td>83.778976</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Thomas High School</th>
       <th>9th</th>
-      <td>83.420755</td>
+      <td>83.590022</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Thomas High School</th>
       <th>10th</th>
       <td>83.087886</td>
     </tr>
@@ -969,11 +1002,11 @@ grade_math_stats
       <td>83.497041</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Wilson High School</th>
       <th>9th</th>
-      <td>83.590022</td>
+      <td>83.085578</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Wilson High School</th>
       <th>10th</th>
       <td>83.724422</td>
     </tr>
@@ -986,11 +1019,11 @@ grade_math_stats
       <td>83.035794</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Wright High School</th>
       <th>9th</th>
-      <td>83.085578</td>
+      <td>83.264706</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Wright High School</th>
       <th>10th</th>
       <td>84.010288</td>
     </tr>
@@ -1001,10 +1034,6 @@ grade_math_stats
     <tr>
       <th>12th</th>
       <td>83.644986</td>
-    </tr>
-    <tr>
-      <th>9th</th>
-      <td>83.264706</td>
     </tr>
   </tbody>
 </table>
@@ -1057,6 +1086,10 @@ grade_read_stats
   <tbody>
     <tr>
       <th rowspan="4" valign="top">Bailey High School</th>
+      <th>9th</th>
+      <td>81.303155</td>
+    </tr>
+    <tr>
       <th>10th</th>
       <td>80.907183</td>
     </tr>
@@ -1069,11 +1102,11 @@ grade_read_stats
       <td>80.912451</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Cabrera High School</th>
       <th>9th</th>
-      <td>81.303155</td>
+      <td>83.676136</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Cabrera High School</th>
       <th>10th</th>
       <td>84.253219</td>
     </tr>
@@ -1086,11 +1119,11 @@ grade_read_stats
       <td>84.287958</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Figueroa High School</th>
       <th>9th</th>
-      <td>83.676136</td>
+      <td>81.198598</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Figueroa High School</th>
       <th>10th</th>
       <td>81.408912</td>
     </tr>
@@ -1103,11 +1136,11 @@ grade_read_stats
       <td>81.384863</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Ford High School</th>
       <th>9th</th>
-      <td>81.198598</td>
+      <td>80.632653</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Ford High School</th>
       <th>10th</th>
       <td>81.262712</td>
     </tr>
@@ -1120,11 +1153,11 @@ grade_read_stats
       <td>80.662338</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Griffin High School</th>
       <th>9th</th>
-      <td>80.632653</td>
+      <td>83.369193</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Griffin High School</th>
       <th>10th</th>
       <td>83.706897</td>
     </tr>
@@ -1137,11 +1170,11 @@ grade_read_stats
       <td>84.013699</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Hernandez High School</th>
       <th>9th</th>
-      <td>83.369193</td>
+      <td>80.866860</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Hernandez High School</th>
       <th>10th</th>
       <td>80.660147</td>
     </tr>
@@ -1154,11 +1187,11 @@ grade_read_stats
       <td>80.857143</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Holden High School</th>
       <th>9th</th>
-      <td>80.866860</td>
+      <td>83.677165</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Holden High School</th>
       <th>10th</th>
       <td>83.324561</td>
     </tr>
@@ -1171,11 +1204,11 @@ grade_read_stats
       <td>84.698795</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Huang High School</th>
       <th>9th</th>
-      <td>83.677165</td>
+      <td>81.290284</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Huang High School</th>
       <th>10th</th>
       <td>81.512386</td>
     </tr>
@@ -1188,11 +1221,11 @@ grade_read_stats
       <td>80.305983</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Johnson High School</th>
       <th>9th</th>
-      <td>81.290284</td>
+      <td>81.260714</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Johnson High School</th>
       <th>10th</th>
       <td>80.773431</td>
     </tr>
@@ -1205,11 +1238,11 @@ grade_read_stats
       <td>81.227564</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Pena High School</th>
       <th>9th</th>
-      <td>81.260714</td>
+      <td>83.807273</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Pena High School</th>
       <th>10th</th>
       <td>83.612000</td>
     </tr>
@@ -1222,11 +1255,11 @@ grade_read_stats
       <td>84.591160</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Rodriguez High School</th>
       <th>9th</th>
-      <td>83.807273</td>
+      <td>80.993127</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Rodriguez High School</th>
       <th>10th</th>
       <td>80.629808</td>
     </tr>
@@ -1239,11 +1272,11 @@ grade_read_stats
       <td>80.376426</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Shelton High School</th>
       <th>9th</th>
-      <td>80.993127</td>
+      <td>84.122642</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Shelton High School</th>
       <th>10th</th>
       <td>83.441964</td>
     </tr>
@@ -1256,11 +1289,11 @@ grade_read_stats
       <td>82.781671</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Thomas High School</th>
       <th>9th</th>
-      <td>84.122642</td>
+      <td>83.728850</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Thomas High School</th>
       <th>10th</th>
       <td>84.254157</td>
     </tr>
@@ -1273,11 +1306,11 @@ grade_read_stats
       <td>83.831361</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Wilson High School</th>
       <th>9th</th>
-      <td>83.728850</td>
+      <td>83.939778</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Wilson High School</th>
       <th>10th</th>
       <td>84.021452</td>
     </tr>
@@ -1290,11 +1323,11 @@ grade_read_stats
       <td>84.317673</td>
     </tr>
     <tr>
+      <th rowspan="4" valign="top">Wright High School</th>
       <th>9th</th>
-      <td>83.939778</td>
+      <td>83.833333</td>
     </tr>
     <tr>
-      <th rowspan="4" valign="top">Wright High School</th>
       <th>10th</th>
       <td>83.812757</td>
     </tr>
@@ -1306,10 +1339,6 @@ grade_read_stats
       <th>12th</th>
       <td>84.073171</td>
     </tr>
-    <tr>
-      <th>9th</th>
-      <td>83.833333</td>
-    </tr>
   </tbody>
 </table>
 </div>
@@ -1319,14 +1348,11 @@ grade_read_stats
 
 ```python
 #remove the formatting so we can do further calculations
-school_summary["Budget Per Student"]=school_summary["Budget Per Student"].replace({'\$': '', ',': ''}, regex=True)
-school_summary["Budget Per Student"]=school_summary["Budget Per Student"].apply(pd.to_numeric)
-school_summary["Overall Passing Rate"]=school_summary["Overall Passing Rate"].replace({'\%': '', ',': ''}, regex=True)
-school_summary["Overall Passing Rate"]=school_summary["Overall Passing Rate"].apply(pd.to_numeric)
-school_summary["% Passing Math"]=school_summary["% Passing Math"].replace({'\%': '', ',': ''}, regex=True)
-school_summary["% Passing Math"]=school_summary["% Passing Math"].apply(pd.to_numeric)
-school_summary["% Passing Reading"]=school_summary["% Passing Reading"].replace({'\%': '', ',': ''}, regex=True)
-school_summary["% Passing Reading"]=school_summary["% Passing Reading"].apply(pd.to_numeric)
+
+to_change=["Budget Per Student","Overall Passing Rate","% Passing Math","% Passing Reading"]
+for x in to_change:
+    school_summary[x]=format_to_plain_number(school_summary[x])
+
 ```
 
 
@@ -1349,9 +1375,9 @@ spending_summary=spending_scores_df.groupby(["Spending Level","school name"]).me
 
 #formatting
 spending_summary=spending_summary[["Average Math Score","Average Reading Score","% Passing Math","% Passing Reading","Overall Passing Rate"]]
-spending_summary["% Passing Math"]=spending_summary["% Passing Math"].map("{:,.2f}%".format)
-spending_summary["% Passing Reading"]=spending_summary["% Passing Reading"].map("{:,.2f}%".format)
-spending_summary["Overall Passing Rate"]=spending_summary["Overall Passing Rate"].map("{:,.2f}%".format)
+spending_summary["% Passing Math"]=format_to_perc(spending_summary["% Passing Math"])
+spending_summary["% Passing Reading"]=format_to_perc(spending_summary["% Passing Reading"])
+spending_summary["Overall Passing Rate"]=format_to_perc(spending_summary["Overall Passing Rate"])
 spending_summary
 ```
 
@@ -1527,12 +1553,10 @@ spending_summary
 
 ```python
 #remove formatting for more calculations
-spending_summary["Overall Passing Rate"]=spending_summary["Overall Passing Rate"].replace({'\%': '', ',': ''}, regex=True)
-spending_summary["Overall Passing Rate"]=spending_summary["Overall Passing Rate"].apply(pd.to_numeric)
-spending_summary["% Passing Math"]=spending_summary["% Passing Math"].replace({'\%': '', ',': ''}, regex=True)
-spending_summary["% Passing Math"]=spending_summary["% Passing Math"].apply(pd.to_numeric)
-spending_summary["% Passing Reading"]=spending_summary["% Passing Reading"].replace({'\%': '', ',': ''}, regex=True)
-spending_summary["% Passing Reading"]=spending_summary["% Passing Reading"].apply(pd.to_numeric)
+
+to_change=["Overall Passing Rate","% Passing Math","% Passing Reading"]
+for x in to_change:
+    spending_summary[x]=format_to_plain_number(spending_summary[x])
 ```
 
 
@@ -1541,9 +1565,10 @@ finale_spending=spending_summary.groupby(["Spending Level"]).mean()
 finale_spending=finale_spending[["Average Math Score","Average Reading Score","% Passing Math","% Passing Reading","Overall Passing Rate"]]
 
 #format 
-finale_spending["% Passing Math"]=finale_spending["% Passing Math"].map("{:,.2f}%".format)
-finale_spending["% Passing Reading"]=finale_spending["% Passing Reading"].map("{:,.2f}%".format)
-finale_spending["Overall Passing Rate"]=finale_spending["Overall Passing Rate"].map("{:,.2f}%".format)
+
+for x in to_change:
+    finale_spending[x]=format_to_perc(finale_spending[x])
+
 finale_spending
 ```
 
@@ -1625,9 +1650,8 @@ finale_spending
 
 ```python
 #remove formatting
-school_summary["Total Students"]=school_summary["Total Students"].replace({',':''}, regex=True)
-school_summary["Total Students"]=school_summary["Total Students"].apply(pd.to_numeric)
 
+school_summary["Total Students"]=format_to_plain_number(school_summary["Total Students"])
 ```
 
 
@@ -1644,6 +1668,10 @@ size_scores_df=pd.DataFrame(size_scores)
 size_summary=size_scores_df.groupby(["size category","school name"]).mean()
 
 size_summary=size_summary[["Average Math Score","Average Reading Score","% Passing Math","% Passing Reading","Overall Passing Rate"]]
+
+for x in to_change:
+    size_summary[x]=format_to_perc(size_summary[x])
+
 size_summary
 ```
 
@@ -1691,123 +1719,123 @@ size_summary
       <th>Bailey High School</th>
       <td>77.048432</td>
       <td>81.033963</td>
-      <td>66.68</td>
-      <td>81.93</td>
-      <td>74.31</td>
+      <td>66.68%</td>
+      <td>81.93%</td>
+      <td>74.31%</td>
     </tr>
     <tr>
       <th>Hernandez High School</th>
       <td>77.289752</td>
       <td>80.934412</td>
-      <td>66.75</td>
-      <td>80.86</td>
-      <td>73.81</td>
+      <td>66.75%</td>
+      <td>80.86%</td>
+      <td>73.81%</td>
     </tr>
     <tr>
       <th>Johnson High School</th>
       <td>77.072464</td>
       <td>80.966394</td>
-      <td>66.06</td>
-      <td>81.22</td>
-      <td>73.64</td>
+      <td>66.06%</td>
+      <td>81.22%</td>
+      <td>73.64%</td>
     </tr>
     <tr>
       <th>Rodriguez High School</th>
       <td>76.842711</td>
       <td>80.744686</td>
-      <td>66.37</td>
-      <td>80.22</td>
-      <td>73.29</td>
+      <td>66.37%</td>
+      <td>80.22%</td>
+      <td>73.29%</td>
     </tr>
     <tr>
       <th rowspan="4" valign="top">Medium</th>
       <th>Figueroa High School</th>
       <td>76.711767</td>
       <td>81.158020</td>
-      <td>65.99</td>
-      <td>80.74</td>
-      <td>73.36</td>
+      <td>65.99%</td>
+      <td>80.74%</td>
+      <td>73.36%</td>
     </tr>
     <tr>
       <th>Ford High School</th>
       <td>77.102592</td>
       <td>80.746258</td>
-      <td>68.31</td>
-      <td>79.30</td>
-      <td>73.80</td>
+      <td>68.31%</td>
+      <td>79.30%</td>
+      <td>73.80%</td>
     </tr>
     <tr>
       <th>Huang High School</th>
       <td>76.629414</td>
       <td>81.182722</td>
-      <td>65.68</td>
-      <td>81.32</td>
-      <td>73.50</td>
+      <td>65.68%</td>
+      <td>81.32%</td>
+      <td>73.50%</td>
     </tr>
     <tr>
       <th>Wilson High School</th>
       <td>83.274201</td>
       <td>83.989488</td>
-      <td>93.87</td>
-      <td>96.54</td>
-      <td>95.20</td>
+      <td>93.87%</td>
+      <td>96.54%</td>
+      <td>95.20%</td>
     </tr>
     <tr>
       <th rowspan="7" valign="top">Small</th>
       <th>Cabrera High School</th>
       <td>83.061895</td>
       <td>83.975780</td>
-      <td>94.13</td>
-      <td>97.04</td>
-      <td>95.59</td>
+      <td>94.13%</td>
+      <td>97.04%</td>
+      <td>95.59%</td>
     </tr>
     <tr>
       <th>Griffin High School</th>
       <td>83.351499</td>
       <td>83.816757</td>
-      <td>93.39</td>
-      <td>97.14</td>
-      <td>95.27</td>
+      <td>93.39%</td>
+      <td>97.14%</td>
+      <td>95.27%</td>
     </tr>
     <tr>
       <th>Holden High School</th>
       <td>83.803279</td>
       <td>83.814988</td>
-      <td>92.51</td>
-      <td>96.25</td>
-      <td>94.38</td>
+      <td>92.51%</td>
+      <td>96.25%</td>
+      <td>94.38%</td>
     </tr>
     <tr>
       <th>Pena High School</th>
       <td>83.839917</td>
       <td>84.044699</td>
-      <td>94.59</td>
-      <td>95.95</td>
-      <td>95.27</td>
+      <td>94.59%</td>
+      <td>95.95%</td>
+      <td>95.27%</td>
     </tr>
     <tr>
       <th>Shelton High School</th>
       <td>83.359455</td>
       <td>83.725724</td>
-      <td>93.87</td>
-      <td>95.85</td>
-      <td>94.86</td>
+      <td>93.87%</td>
+      <td>95.85%</td>
+      <td>94.86%</td>
     </tr>
     <tr>
       <th>Thomas High School</th>
       <td>83.418349</td>
       <td>83.848930</td>
-      <td>93.27</td>
-      <td>97.31</td>
-      <td>95.29</td>
+      <td>93.27%</td>
+      <td>97.31%</td>
+      <td>95.29%</td>
     </tr>
     <tr>
       <th>Wright High School</th>
       <td>83.682222</td>
       <td>83.955000</td>
-      <td>93.33</td>
-      <td>96.61</td>
-      <td>94.97</td>
+      <td>93.33%</td>
+      <td>96.61%</td>
+      <td>94.97%</td>
     </tr>
   </tbody>
 </table>
@@ -1817,8 +1845,17 @@ size_summary
 
 
 ```python
+#remove formatting
+for x in to_change:
+    size_summary[x]=format_to_plain_number(size_summary[x])
+```
+
+
+```python
 finale_size=size_summary.groupby(["size category"]).mean()
 finale_size=finale_size[["Average Math Score","Average Reading Score","% Passing Math","% Passing Reading","Overall Passing Rate"]]
+for x in to_change:
+    finale_size[x]=format_to_perc(finale_size[x])
 finale_size
 ```
 
@@ -1863,31 +1900,38 @@ finale_size
       <th>Large</th>
       <td>77.063340</td>
       <td>80.919864</td>
-      <td>66.465000</td>
-      <td>81.057500</td>
-      <td>73.7625</td>
+      <td>66.47%</td>
+      <td>81.06%</td>
+      <td>73.76%</td>
     </tr>
     <tr>
       <th>Medium</th>
       <td>78.429493</td>
       <td>81.769122</td>
-      <td>73.462500</td>
-      <td>84.475000</td>
-      <td>78.9650</td>
+      <td>73.46%</td>
+      <td>84.47%</td>
+      <td>78.97%</td>
     </tr>
     <tr>
       <th>Small</th>
       <td>83.502373</td>
       <td>83.883125</td>
-      <td>93.584286</td>
-      <td>96.592857</td>
-      <td>95.0900</td>
+      <td>93.58%</td>
+      <td>96.59%</td>
+      <td>95.09%</td>
     </tr>
   </tbody>
 </table>
 </div>
 
 
+
+
+```python
+#remove formatting
+for x in to_change:
+    finale_size[x]=format_to_plain_number(finale_size[x])
+```
 
 
 ```python
@@ -1913,10 +1957,12 @@ type_summary = pd.concat([school_summary,finale])
 type_summary=type_summary.groupby(["School Type","school name"]).mean()
 
 type_summary=type_summary[["Average Math Score","Average Reading Score","% Passing Math","% Passing Reading","Overall Passing Rate"]]
+
 #format
-type_summary["% Passing Math"]=type_summary["% Passing Math"].map("{:,.2f}%".format)
-type_summary["% Passing Reading"]=type_summary["% Passing Reading"].map("{:,.2f}%".format)
-type_summary["Overall Passing Rate"]=type_summary["Overall Passing Rate"].map("{:,.2f}%".format)
+to_change=["% Passing Math","% Passing Reading","Overall Passing Rate"]
+for x in to_change:
+    type_summary[x]=format_to_perc(type_summary[x])
+
 type_summary
 
 ```
@@ -2107,12 +2153,8 @@ type_summary
 
 ```python
 #remove format for further calculations
-type_summary["Overall Passing Rate"]=type_summary["Overall Passing Rate"].replace({'\%': '', ',': ''}, regex=True)
-type_summary["Overall Passing Rate"]=type_summary["Overall Passing Rate"].apply(pd.to_numeric)
-type_summary["% Passing Math"]=type_summary["% Passing Math"].replace({'\%': '', ',': ''}, regex=True)
-type_summary["% Passing Math"]=type_summary["% Passing Math"].apply(pd.to_numeric)
-type_summary["% Passing Reading"]=type_summary["% Passing Reading"].replace({'\%': '', ',': ''}, regex=True)
-type_summary["% Passing Reading"]=type_summary["% Passing Reading"].apply(pd.to_numeric)
+for x in to_change:
+    type_summary[x]=format_to_plain_number(type_summary[x])
 ```
 
 
@@ -2122,9 +2164,10 @@ finale=type_summary.groupby(["School Type"]).mean()
 finale=finale[["Average Math Score","Average Reading Score","% Passing Math","% Passing Reading","Overall Passing Rate"]]
 
 #Format
-finale["% Passing Math"]=finale["% Passing Math"].map("{:,.2f}%".format)
-finale["% Passing Reading"]=finale["% Passing Reading"].map("{:,.2f}%".format)
-finale["Overall Passing Rate"]=finale["Overall Passing Rate"].map("{:,.2f}%".format)
+
+for x in to_change:
+    finale[x]=format_to_perc(finale[x])
+
 finale
 ```
 
@@ -2184,5 +2227,4 @@ finale
   </tbody>
 </table>
 </div>
-
 
